@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Quizly</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="icon" type="image/webp" href="image.webp">
 <link id="mainFontLink" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
@@ -1044,9 +1043,9 @@ let selectedCardColor = CARD_COLORS[0].id;
 let editingId = null, modalSecs = [], selEmoji = '📚', qsTexts = {};
 
 /* ══ PARSER ══ */
-function parseQuestions(raw, sections) {
+function parseQuestions(raw, sections, defaultSecId = null) {
   const qs = [];
-  let curSecId = sections.length ? sections[0].id : 'default';
+  let curSecId = defaultSecId || (sections.length ? sections[0].id : 'default');
   for (const block of raw.trim().split(/\n\s*\n/)) {
     const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
@@ -1593,7 +1592,7 @@ function saveQuiz() {
   const secs = modalSecs.length ? modalSecs : [{id:'default',name:'All Questions'}];
   const allQs = [];
   secs.forEach(s => {
-    const parsed = parseQuestions(qsTexts[s.id] || '', secs);
+    const parsed = parseQuestions(qsTexts[s.id] || '', secs, s.id);
     parsed.forEach(q => { if (q.sectionId === 'default') q.sectionId = s.id; });
     allQs.push(...parsed);
   });
