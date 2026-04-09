@@ -1,1 +1,0 @@
-# sampal.github.io
