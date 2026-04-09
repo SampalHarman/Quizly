@@ -949,25 +949,36 @@ let storageReady = false;
 /** How long to wait for the first sync from the network before booting (mobile can be slow). */
 const INITIAL_SYNC_MS = 15000;
 
-function cloneData(v){
-  if(v===undefined || v===null) return v;
-  try{
-    if(typeof structuredClone === 'function') return structuredClone(v);
-    return JSON.parse(JSON.stringify(v));
-  }catch{
-    return v;
+function safeJsonParse(s){
+  try{return JSON.parse(s);}catch{return null;}
+}
+
+// Public Gun relays can behave unpredictably with deep/nested objects. To make persistence reliable,
+// we store one JSON string per key and hydrate it back to plain JS on load.
+function encodeForStore(v){
+  if(v===undefined) return null;
+  try{return JSON.stringify(v);}catch{return null;}
+}
+function decodeFromStore(data){
+  if(data===undefined || data===null) return null;
+  if(typeof data === 'string'){
+    const parsed = safeJsonParse(data);
+    return parsed===null ? data : parsed;
   }
+  // Backward-compat if some object was previously stored.
+  return data;
 }
 
 function load(k){
   const v = storeCache[k];
-  return v===undefined ? null : cloneData(v);
+  return v===undefined ? null : v;
 }
 
 function save(k,v){
-  const next = cloneData(v);
-  storeCache[k]=next;
-  appData.get(k).put(next);
+  const encoded = encodeForStore(v);
+  if(encoded===null) return;
+  storeCache[k]=decodeFromStore(encoded);
+  appData.get(k).put(encoded);
 }
 
 function applyLiveStorageUpdate(key){
@@ -1000,8 +1011,9 @@ async function initStorage(){
   // `.once()` can resolve before the relay delivers remote data — use `.on()` + a sync window instead.
   keys.forEach(k=>{
     appData.get(k).on(data=>{
-      if(data===undefined || data===null) return;
-      storeCache[k]=cloneData(data);
+      const decoded = decodeFromStore(data);
+      if(decoded===null) return;
+      storeCache[k]=decoded;
       if(storageReady) applyLiveStorageUpdate(k);
     });
   });
