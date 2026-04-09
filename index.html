@@ -24,7 +24,7 @@
 /* ══ THEMES ══ */
 :root {
   --bg:#F2F2F5;--surface:#FFFFFF;--surface2:#F8F8FA;--surface3:#EEEEEF;
-  --border:#E2E2E6;--border2:#CCCCD2;
+  --border:transparent;--border2:transparent;
   --text:#0C0C10;--text2:#44444F;--muted:#8E8E9C;
   --shadow-xs:0 1px 2px rgba(0,0,0,.04);
   --shadow-s:0 2px 8px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.03);
@@ -36,7 +36,7 @@
 }
 [data-theme="dark"] {
   --bg:#0F0F12;--surface:#18181C;--surface2:#202026;--surface3:#28282F;
-  --border:#2C2C33;--border2:#3A3A42;
+  --border:transparent;--border2:transparent;
   --text:#F0F0F4;--text2:#A0A0AC;--muted:#505058;
   --shadow-xs:0 1px 2px rgba(0,0,0,.4);
   --shadow-s:0 2px 8px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.3);
@@ -47,7 +47,7 @@
 }
 [data-theme="midnight"] {
   --bg:#050812;--surface:#0B1020;--surface2:#111830;--surface3:#172040;
-  --border:#1C2438;--border2:#243050;
+  --border:transparent;--border2:transparent;
   --text:#E4EEFF;--text2:#7080AA;--muted:#384A70;
   --shadow-xs:0 1px 3px rgba(0,0,0,.5);
   --shadow-s:0 2px 10px rgba(0,0,0,.6),0 1px 3px rgba(0,0,0,.4);
@@ -58,7 +58,7 @@
 }
 [data-theme="amoled"] {
   --bg:#000000;--surface:#0A0A0A;--surface2:#111111;--surface3:#1A1A1A;
-  --border:#1E1E1E;--border2:#282828;
+  --border:transparent;--border2:transparent;
   --text:#FFFFFF;--text2:#AAAAAA;--muted:#444444;
   --shadow-xs:0 1px 2px rgba(0,0,0,.7);
   --shadow-s:0 2px 8px rgba(0,0,0,.8),0 1px 2px rgba(0,0,0,.5);
@@ -69,7 +69,7 @@
 }
 [data-theme="warm"] {
   --bg:#EFE8DC;--surface:#FAF5EC;--surface2:#EDE5D8;--surface3:#E4D9C8;
-  --border:#D4C8B4;--border2:#C0B098;
+  --border:transparent;--border2:transparent;
   --text:#1A1208;--text2:#5A4830;--muted:#9A8870;
   --shadow-xs:0 1px 2px rgba(50,30,10,.05);
   --shadow-s:0 2px 8px rgba(50,30,10,.07),0 1px 2px rgba(50,30,10,.04);
@@ -80,7 +80,7 @@
 }
 [data-theme="nord"] {
   --bg:#232A35;--surface:#2E3440;--surface2:#373D4C;--surface3:#3F4758;
-  --border:#3C4458;--border2:#4C566A;
+  --border:transparent;--border2:transparent;
   --text:#ECEFF4;--text2:#C8D0DE;--muted:#4C566A;
   --shadow-xs:0 1px 2px rgba(0,0,0,.3);
   --shadow-s:0 2px 8px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.25);
@@ -93,13 +93,49 @@
 /* ══ RESET ══ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+html{
+  -ms-overflow-style:none;
+  scrollbar-width:none;
+}
 body{
   font-family:var(--font-body,'Plus Jakarta Sans'),system-ui,sans-serif;
   background:var(--bg);color:var(--text);min-height:100svh;
   transition:background .3s,color .3s;overflow-x:hidden;
   line-height:1.5;
+  -ms-overflow-style:none;
+  scrollbar-width:none;
 }
 input,textarea,select,button{font-family:inherit;}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.sheet::-webkit-scrollbar,
+.modal::-webkit-scrollbar{
+  width:0;height:0;display:none;
+}
+.sheet,.modal{
+  -ms-overflow-style:none;
+  scrollbar-width:none;
+}
+
+/* Borderless UI */
+*{border-color:transparent;}
+.navbar,.quiz-topbar,.results-topbar{border-bottom:none!important;}
+.banner-bg{border-top:none!important;}
+.sheet,.modal,.quiz-card,.stat-card,.empty-state,.option,.score-hero,.breakdown,.score-pill,
+.icon-btn,.mini-btn,.close-btn,.btn-ghost,.data-btn,.theme-card,.q-sec-chip{border:none!important;}
+.sheet-group,.sheet-row{border:none!important;}
+/* Keep containers visually separated without borders */
+.stat-card,.quiz-card,.empty-state,.score-hero,.breakdown,.modal,.sheet{
+  box-shadow:var(--shadow-xs);
+}
+.sheet-row{
+  background:var(--surface2);
+  border-radius:10px;
+  margin:4px 10px;
+}
+.icon-btn,.mini-btn,.close-btn,.btn-ghost,.data-btn,.theme-card,.q-sec-chip,.score-pill{
+  background:var(--surface2);
+}
 
 /* ══ EASING VARS ══ */
 :root{
@@ -331,7 +367,7 @@ input,textarea,select,button{font-family:inherit;}
 /* ══ QUIZ START MODAL ══ */
 .start-modal{max-width:440px;gap:14px;}
 .sm-hero{display:flex;align-items:center;gap:14px;padding:4px 0;}
-.sm-icon{width:48px;height:48px;border-radius:12px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.sm-icon{width:48px;height:48px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
 .sm-info{flex:1;min-width:0;}
 .sm-title{font-size:16px;font-weight:800;letter-spacing:-.04em;font-family:var(--font-display,'Bricolage Grotesque'),sans-serif;}
 .sm-meta{font-size:12px;color:var(--muted);margin-top:2px;}
@@ -350,23 +386,16 @@ input,textarea,select,button{font-family:inherit;}
 .sm-opt-row:last-child{border-bottom:none;}
 .sm-opt-info .lbl{font-size:13.5px;font-weight:600;color:var(--text);}
 .sm-opt-info .sub{font-size:11.5px;color:var(--muted);margin-top:1px;}
-.timer-sub-row{
-  display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
-  padding:10px 12px;margin-top:6px;gap:8px;align-items:center;flex-wrap:wrap;
-}
-.timer-sub-row.vis{display:flex;}
-.timer-sub-row label{font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0;}
-.timer-sub-row input{width:60px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text);outline:none;text-align:center;}
-.timer-sub-row input:focus{border-color:var(--a);}
-.timer-sub-row span{font-size:12px;color:var(--muted);}
-.auto-btn{
-  font-size:11px;font-weight:700;color:var(--a);background:rgba(var(--ar),.08);
-  border:1px solid rgba(var(--ar),.2);border-radius:5px;padding:4px 8px;cursor:pointer;
-  transition:background .14s;
-}
-.auto-btn:hover{background:rgba(var(--ar),.15);}
 .sm-actions{display:flex;gap:8px;}
-.sm-actions .btn-ghost{flex:1;}
+.sm-actions .btn-ghost{
+  flex:1;
+  background:var(--surface2);
+  color:var(--text);
+}
+.sm-actions .btn-ghost:hover{
+  background:var(--surface3);
+  transform:translateY(-1px);
+}
 .sm-actions .btn-primary{flex:2;display:flex;align-items:center;justify-content:center;gap:6px;}
 .sm-actions .btn-primary svg{width:14px;height:14px;stroke-width:2.5;}
 
@@ -413,21 +442,15 @@ input,textarea,select,button{font-family:inherit;}
 .qtc-name{font-size:12.5px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .qtc-sec{font-size:10.5px;color:var(--muted);margin-top:1px;}
 
-.progress-track{width:90px;height:3px;background:var(--border);border-radius:99px;overflow:hidden;flex-shrink:0;}
-.progress-fill{height:100%;border-radius:99px;background:var(--a);transition:width .5s var(--out);}
-
-.q-count{font-size:11.5px;font-weight:700;color:var(--muted);min-width:32px;text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0;}
-
-/* Timer display */
-.timer-display{
-  font-size:12px;font-weight:700;font-family:'DM Mono',monospace;
-  color:var(--muted);padding:3px 8px;border-radius:5px;
-  background:var(--surface2);border:1px solid var(--border);
-  transition:color .3s,background .3s,border-color .3s;flex-shrink:0;
+.quiz-progress{
+  position:sticky;top:55px;z-index:29;
+  width:100%;height:3px;background:var(--border);
 }
-.timer-display.warn{color:#D97706;background:rgba(217,119,6,.08);border-color:rgba(217,119,6,.22);}
-.timer-display.crit{color:#DC2626;background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.22);animation:pulse-timer 1s infinite;}
-@keyframes pulse-timer{0%,100%{opacity:1;}50%{opacity:.6;}}
+.quiz-progress-fill{
+  height:100%;width:0%;
+  background:var(--a);
+  transition:width .35s var(--out);
+}
 
 /* Quiz body */
 .quiz-body{flex:1;max-width:640px;margin:0 auto;width:100%;padding:24px 20px 130px;}
@@ -516,6 +539,26 @@ input,textarea,select,button{font-family:inherit;}
 .q-banner.ok .btn-next{background:#059669;box-shadow:0 3px 10px rgba(5,150,105,.28);}
 .q-banner.no .btn-next{background:#DC2626;box-shadow:0 3px 10px rgba(220,38,38,.28);}
 .btn-next:hover{opacity:.88;transform:translateY(-1px);}
+
+/* Toast */
+.toast{
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+  background:rgba(var(--nav-rgb,255,255,255),.9);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;box-shadow:var(--shadow-m);
+  display:flex;align-items:center;gap:8px;
+  opacity:0;pointer-events:none;
+  transition:opacity .18s var(--out),transform .18s var(--out);
+  z-index:500;
+}
+[data-theme="dark"] .toast,[data-theme="amoled"] .toast{background:rgba(24,24,28,.92);}
+[data-theme="midnight"] .toast{background:rgba(11,16,32,.92);}
+[data-theme="nord"] .toast{background:rgba(46,52,64,.92);}
+[data-theme="warm"] .toast{background:rgba(250,245,236,.92);}
+.toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-2px);}
+.toast .t-ico{width:26px;height:26px;border-radius:8px;background:rgba(var(--ar),.12);display:flex;align-items:center;justify-content:center;color:var(--a);flex-shrink:0;}
+.toast .t-txt{font-size:12.5px;font-weight:650;color:var(--text2);}
 
 /* ══ RESULTS ══ */
 .results-topbar{
@@ -708,17 +751,15 @@ input,textarea,select,button{font-family:inherit;}
 <!-- ══ QUIZ PLAY ══ -->
 <div id="page-quiz" class="page">
   <div class="quiz-topbar">
-    <button class="back-btn" onclick="confirmLeave()">
+    <button class="back-btn" onclick="leaveQuiz()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="quiz-title-col">
       <div class="qtc-name" id="qtcName"></div>
       <div class="qtc-sec" id="qtcSec"></div>
     </div>
-    <div id="timerDisplay" class="timer-display hidden"></div>
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="q-count" id="qCount"></div>
   </div>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quizProgressFill"></div></div>
   <div class="quiz-body" id="quizBody"></div>
   <div class="q-banner" id="qBanner">
     <div class="banner-bg"></div>
@@ -746,6 +787,11 @@ input,textarea,select,button{font-family:inherit;}
 
 </div><!-- #app -->
 
+<div class="toast" id="toast">
+  <div class="t-ico" id="toastIcon">✓</div>
+  <div class="t-txt" id="toastText">Saved</div>
+</div>
+
 <!-- ══ QUIZ START MODAL ══ -->
 <div class="overlay" id="startOverlay">
   <div class="modal start-modal" id="startModal">
@@ -766,21 +812,6 @@ input,textarea,select,button{font-family:inherit;}
     </div>
     <div class="sm-divider"></div>
     <div class="sm-opts">
-      <div class="sm-opt-row">
-        <div class="sm-opt-info">
-          <div class="lbl">⏱ Timer</div>
-          <div class="sub" id="smTimerSub">Disabled</div>
-        </div>
-        <button class="tog" id="togTimer" onclick="toggleStartTimer()"></button>
-      </div>
-      <div class="timer-sub-row" id="timerSubRow">
-        <label>Duration</label>
-        <input type="number" id="timerMins" min="0" max="180" value="5">
-        <span>min</span>
-        <input type="number" id="timerSecs" min="0" max="59" value="0">
-        <span>sec</span>
-        <button class="auto-btn" onclick="setAutoTime()">Auto</button>
-      </div>
       <div class="sm-opt-row">
         <div class="sm-opt-info">
           <div class="lbl">🔀 Shuffle Questions</div>
@@ -1032,11 +1063,9 @@ function handleLiveUpdate(key) {
 let quizzes = [], progress = {};
 let AQ = null, AP = null, AIdx = 0, AAnswered = false;
 let AShuffledOrder = null;
-let timerInterval = null, timerRemaining = 0;
 
 // Start modal state
 let startQuizId = null;
-let startTimerOn = false, startTimerSecs = 300;
 let startShuffle = false;
 let selectedCardColor = CARD_COLORS[0].id;
 
@@ -1139,12 +1168,19 @@ function buildCard(q) {
 /* ══ START MODAL ══ */
 function openStartModal(id) {
   const q = quizzes.find(x => x.id === id); if (!q) return;
+  const p = progress[id] || null;
+
+  // If a quiz is already in progress, resume directly without showing start modal.
+  if (p && !p.done && p.idx > 0) {
+    const prefs = q.prefs || {};
+    startQuiz(id, !!prefs.shuffle);
+    return;
+  }
+
   startQuizId = id;
 
   // Restore prefs from quiz object
   const prefs = q.prefs || {};
-  startTimerOn = prefs.timerEnabled || false;
-  startTimerSecs = prefs.timerSeconds || Math.max(60, q.questions.length * 90);
   startShuffle = prefs.shuffle || false;
   selectedCardColor = q.color || CARD_COLORS[0].id;
 
@@ -1153,7 +1189,6 @@ function openStartModal(id) {
   document.getElementById('smTitle').textContent = q.name;
   document.getElementById('smMeta').textContent = `${q.questions.length} question${q.questions.length!==1?'s':''}${q.sections.length>1?' · '+q.sections.length+' sections':''}`;
 
-  const p = progress[id];
   const lastEl = document.getElementById('smLast');
   if (p && p.done && p.total) {
     lastEl.classList.remove('hidden');
@@ -1163,22 +1198,12 @@ function openStartModal(id) {
     lastEl.classList.add('hidden');
   }
 
-  // Timer
-  const mins = Math.floor(startTimerSecs / 60);
-  const secs = startTimerSecs % 60;
-  document.getElementById('timerMins').value = mins;
-  document.getElementById('timerSecs').value = secs;
-  const togTimer = document.getElementById('togTimer');
-  togTimer.classList.toggle('on', startTimerOn);
-  document.getElementById('timerSubRow').classList.toggle('vis', startTimerOn);
-  document.getElementById('smTimerSub').textContent = startTimerOn ? `${mins}m ${secs}s` : 'Disabled';
-
   document.getElementById('togShuffle').classList.toggle('on', startShuffle);
 
   // Card colors
   const ccRow = document.getElementById('cardColorRow');
   ccRow.innerHTML = CARD_COLORS.map(c =>
-    `<div class="color-chip${c.id===selectedCardColor?' sel':''}" style="background:${c.id};title:'${c.name}'" onclick="selectCardColor('${c.id}')"></div>`
+    `<div class="color-chip${c.id===selectedCardColor?' sel':''}" data-color="${c.id}" title="${esc(c.name)}" style="background:${c.id}" onclick="selectCardColor('${c.id}')"></div>`
   ).join('');
 
   document.getElementById('startOverlay').classList.add('open');
@@ -1189,31 +1214,13 @@ document.getElementById('startOverlay').addEventListener('click', e => { if(e.ta
 function selectCardColor(c) {
   selectedCardColor = c;
   document.querySelectorAll('#cardColorRow .color-chip').forEach(el => {
-    el.classList.toggle('sel', el.style.background === c);
+    el.classList.toggle('sel', (el.dataset.color || '').toLowerCase() === c.toLowerCase());
   });
-}
-
-function toggleStartTimer() {
-  startTimerOn = !startTimerOn;
-  document.getElementById('togTimer').classList.toggle('on', startTimerOn);
-  document.getElementById('timerSubRow').classList.toggle('vis', startTimerOn);
-  const mins = parseInt(document.getElementById('timerMins').value)||0;
-  const secs = parseInt(document.getElementById('timerSecs').value)||0;
-  document.getElementById('smTimerSub').textContent = startTimerOn ? `${mins}m ${secs}s` : 'Disabled';
 }
 
 function toggleShuffle() {
   startShuffle = !startShuffle;
   document.getElementById('togShuffle').classList.toggle('on', startShuffle);
-}
-
-function setAutoTime() {
-  const q = quizzes.find(x => x.id === startQuizId); if (!q) return;
-  const t = q.questions.length * 90; // 90s per question
-  const m = Math.floor(t/60), s = t%60;
-  document.getElementById('timerMins').value = m;
-  document.getElementById('timerSecs').value = s;
-  startTimerSecs = t;
 }
 
 function openEditFromStart() {
@@ -1223,30 +1230,27 @@ function openEditFromStart() {
 
 function beginQuiz() {
   const q = quizzes.find(x => x.id === startQuizId); if (!q) return;
-  const mins = parseInt(document.getElementById('timerMins').value)||0;
-  const secs = parseInt(document.getElementById('timerSecs').value)||0;
-  startTimerSecs = mins*60 + secs;
 
   // Save prefs + color to quiz
   const idx = quizzes.findIndex(x => x.id === startQuizId);
   if (idx >= 0) {
-    quizzes[idx].prefs = {timerEnabled:startTimerOn, timerSeconds:startTimerSecs, shuffle:startShuffle};
+    quizzes[idx].prefs = {shuffle:startShuffle};
     quizzes[idx].color = selectedCardColor;
     save(SK.Q, quizzes);
   }
 
   closeStartModal();
-  startQuiz(startQuizId, startTimerOn ? startTimerSecs : 0, startShuffle);
+  startQuiz(startQuizId, startShuffle);
 }
 
 /* ══ QUIZ PLAY ══ */
-function startQuiz(id, timerSecs = 0, shuffle = false) {
+function startQuiz(id, shuffle = false) {
   const q = quizzes.find(x => x.id === id); if (!q) return;
   AQ = q;
+  applyQuizAccent(q.color || CARD_COLORS[0].id);
   const existing = progress[id] || {};
 
   if (existing.done) {
-    if (!confirm('You already completed this quiz. Start over?')) { showResults(id); return; }
     AP = {idx:0,score:0,answers:[],total:q.questions.length,done:false};
   } else if (existing.idx > 0) {
     AP = {...existing};
@@ -1266,36 +1270,8 @@ function startQuiz(id, timerSecs = 0, shuffle = false) {
   progress[id] = AP;
   save(SK.P, progress);
 
-  // Timer
-  clearInterval(timerInterval);
-  if (timerSecs > 0) {
-    timerRemaining = timerSecs;
-    const td = document.getElementById('timerDisplay');
-    td.classList.remove('hidden');
-    updateTimerDisplay();
-    timerInterval = setInterval(() => {
-      timerRemaining--;
-      updateTimerDisplay();
-      if (timerRemaining <= 0) {
-        clearInterval(timerInterval);
-        finishQuiz(true);
-      }
-    }, 1000);
-  } else {
-    document.getElementById('timerDisplay').classList.add('hidden');
-  }
-
   showPage('quiz');
   renderQuestion();
-}
-
-function updateTimerDisplay() {
-  const m = Math.floor(timerRemaining/60);
-  const s = timerRemaining%60;
-  const el = document.getElementById('timerDisplay');
-  el.textContent = `${m}:${String(s).padStart(2,'0')}`;
-  const total = AQ ? (AQ.prefs||{}).timerSeconds || 300 : 300;
-  el.className = 'timer-display' + (timerRemaining < 30 ? ' crit' : timerRemaining < total*.2 ? ' warn' : '');
 }
 
 function getQuestionAt(idx) {
@@ -1303,11 +1279,28 @@ function getQuestionAt(idx) {
   return AQ.questions[idx];
 }
 
-function confirmLeave() {
-  clearInterval(timerInterval);
-  if (confirm('Leave quiz? Progress is saved.')) goHome();
+let toastT = null;
+function showToast(msg = 'Saved', icon = '✓', ms = 1400) {
+  const t = document.getElementById('toast');
+  const tt = document.getElementById('toastText');
+  const ti = document.getElementById('toastIcon');
+  if (!t || !tt || !ti) return;
+  tt.textContent = msg;
+  ti.textContent = icon;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), ms);
 }
-function goHome() { clearInterval(timerInterval); renderHome(); }
+
+function leaveQuiz() {
+  // Progress is already saved frequently; ensure latest snapshot is persisted.
+  try {
+    if (AQ && AP) { progress[AQ.id] = AP; save(SK.P, progress); }
+  } catch(e) {}
+  goHome();
+  showToast('Progress saved', '✓');
+}
+function goHome() { clearQuizAccent(); renderHome(); }
 
 function renderQuestion() {
   hideBanner();
@@ -1321,8 +1314,7 @@ function renderQuestion() {
 
   document.getElementById('qtcName').textContent = AQ.name;
   document.getElementById('qtcSec').textContent = sec ? sec.name : '';
-  document.getElementById('progressFill').style.width = (AIdx/AQ.questions.length*100)+'%';
-  document.getElementById('qCount').textContent = `${AIdx+1}/${AQ.questions.length}`;
+  document.getElementById('quizProgressFill').style.width = `${((AIdx + 1) / AQ.questions.length) * 100}%`;
 
   const area = document.createElement('div');
   area.className = 'question-area';
@@ -1405,12 +1397,10 @@ function nextQuestion() {
   renderQuestion();
 }
 
-function finishQuiz(timedOut = false) {
-  clearInterval(timerInterval);
+function finishQuiz() {
   AP.done = true;
   AP.idx = AQ.questions.length;
   AP.completedAt = Date.now();
-  if (timedOut) AP.timedOut = true;
   progress[AQ.id] = AP;
   save(SK.P, progress);
   showResults(AQ.id);
@@ -1449,7 +1439,6 @@ function showResults(qid) {
       <div class="score-pill"><div class="spv" style="color:#DC2626">${total-score}</div><div class="spl">Wrong</div></div>
       <div class="score-pill"><div class="spv">${total}</div><div class="spl">Total</div></div>
     </div>
-    ${p.timedOut?'<div style="font-size:12px;color:#D97706;background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);border-radius:6px;padding:6px 12px;">⏰ Time expired — quiz auto-submitted</div>':''}
   `;
   body.appendChild(hero);
   requestAnimationFrame(() => setTimeout(() => {
@@ -1804,6 +1793,21 @@ document.addEventListener('keydown', e => {
 
 /* ══ HELPERS ══ */
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function hexToRgb(hex) {
+  const clean = String(hex || '').replace('#', '').trim();
+  if (!/^[\da-fA-F]{6}$/.test(clean)) return null;
+  return `${parseInt(clean.slice(0,2),16)},${parseInt(clean.slice(2,4),16)},${parseInt(clean.slice(4,6),16)}`;
+}
+function applyQuizAccent(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return;
+  document.documentElement.style.setProperty('--a', hex);
+  document.documentElement.style.setProperty('--ar', rgb);
+}
+function clearQuizAccent() {
+  document.documentElement.style.removeProperty('--a');
+  document.documentElement.style.removeProperty('--ar');
+}
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
