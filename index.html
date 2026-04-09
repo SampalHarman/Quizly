@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quizly</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="icon" type="image/webp" href="image.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link id="fontLink" href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800;900&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ════════════════════════════════════════════
@@ -919,8 +919,7 @@ const SK = {
   ACRYLIC:'qly_acrylic',
   AMBIENT:'qly_ambient',
   FONT:'qly_font',
-  CUSTOM_FONT:'qly_cfont',      // legacy single custom font
-  CUSTOM_FONTS:'qly_cfonts'     // array of imported fonts (new)
+  CUSTOM_FONT:'qly_cfont'
 };
 
 const EMOJIS = ['📚','🔬','🧪','⚗️','🧬','💡','🧠','📐','📏','🔭','🌍','⚡','🎯','🏆','📊','🧩','🎓','📝','🔢','🌡️','🫀','🧲','🔋','💻','🌿','🦠','🛸','🎨','🌊','🔺'];
@@ -938,30 +937,49 @@ const ACCENTS = [
 ];
 
 const GUN_APP_NAMESPACE = 'quizly_sync_v1';
-const gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+// Multiple public relays — Heroku demos often go offline; mobile needs a reachable WSS peer.
+const GUN_PEERS = [
+  'https://try.axe.eco/gun',
+  'https://test.era.eco/gun',
+  'https://gun-manhattan.herokuapp.com/gun'
+];
+const gun = Gun({ peers: GUN_PEERS });
 const appData = gun.get(GUN_APP_NAMESPACE);
 const storeCache = {};
 let storageReady = false;
+/** How long to wait for the first sync from the network before booting (mobile can be slow). */
+const INITIAL_SYNC_MS = 15000;
 
-function cloneData(v){
-  if(v===undefined || v===null) return v;
-  try{
-    if(typeof structuredClone === 'function') return structuredClone(v);
-    return JSON.parse(JSON.stringify(v));
-  }catch{
-    return v;
+function safeJsonParse(s){
+  try{return JSON.parse(s);}catch{return null;}
+}
+
+// Public Gun relays can behave unpredictably with deep/nested objects. To make persistence reliable,
+// we store one JSON string per key and hydrate it back to plain JS on load.
+function encodeForStore(v){
+  if(v===undefined) return null;
+  try{return JSON.stringify(v);}catch{return null;}
+}
+function decodeFromStore(data){
+  if(data===undefined || data===null) return null;
+  if(typeof data === 'string'){
+    const parsed = safeJsonParse(data);
+    return parsed===null ? data : parsed;
   }
+  // Backward-compat if some object was previously stored.
+  return data;
 }
 
 function load(k){
   const v = storeCache[k];
-  return v===undefined ? null : cloneData(v);
+  return v===undefined ? null : v;
 }
 
 function save(k,v){
-  const next = cloneData(v);
-  storeCache[k]=next;
-  appData.get(k).put(next);
+  const encoded = encodeForStore(v);
+  if(encoded===null) return;
+  storeCache[k]=decodeFromStore(encoded);
+  appData.get(k).put(encoded);
 }
 
 function applyLiveStorageUpdate(key){
@@ -978,10 +996,8 @@ function applyLiveStorageUpdate(key){
     applyAppearanceFromStorage();
   } else if(key===SK.FONT){
     applyFontFromStorage();
-  } else if(key===SK.CUSTOM_FONTS || key===SK.CUSTOM_FONT){
-    // Custom fonts changed (or legacy custom font changed) — refresh font selection + UI
-    applyFontFromStorage();
-    syncSettings();
+  } else if(key===SK.CUSTOM_FONT){
+    applyCustomFontFromStorage();
   }
 
   if(document.getElementById('page-home').classList.contains('active')){
@@ -993,20 +1009,19 @@ function applyLiveStorageUpdate(key){
 
 async function initStorage(){
   const keys = Object.values(SK);
-  await Promise.all(keys.map(k => new Promise(resolve=>{
-    appData.get(k).once(v=>{
-      if(v!==undefined) storeCache[k]=v;
-      resolve();
+  // `.once()` can resolve before the relay delivers remote data — use `.on()` + a sync window instead.
+  keys.forEach(k=>{
+    appData.get(k).on(data=>{
+      const decoded = decodeFromStore(data);
+      if(decoded===null) return;
+      storeCache[k]=decoded;
+      if(storageReady) applyLiveStorageUpdate(k);
     });
-  })));
+  });
+
+  await new Promise(r=>setTimeout(r, INITIAL_SYNC_MS));
 
   storageReady = true;
-
-  appData.map().on((data,key)=>{
-    if(!storageReady || key==='_' || data===undefined) return;
-    storeCache[key]=data;
-    applyLiveStorageUpdate(key);
-  });
 }
 
 function applyAppearanceFromStorage(){
@@ -1022,41 +1037,23 @@ function applyAppearanceFromStorage(){
 
 function applyFontFromStorage(){
   const fontIdx=load(SK.FONT)||'0';
-  const all=getAllFonts();
-  const fi=parseInt(fontIdx,10);
-  const idx=Number.isFinite(fi)?fi:0;
-  const f=all[idx]||all[0]||FONTS[0];
-  document.documentElement.setAttribute('data-font',String(idx));
+  document.documentElement.setAttribute('data-font',fontIdx);
+  const fi=parseInt(fontIdx,10)||0;
+  const f=FONTS[fi]||FONTS[0];
   document.getElementById('fontLink').href=f.url;
   document.documentElement.style.setProperty('--font-display',`'${f.display}'`);
   document.documentElement.style.setProperty('--font-body',`'${f.body}'`);
 }
 
-function normalizeCustomFontEntry(f){
-  if(!f) return null;
-  const name=String(f.name||'').trim();
-  const url=String(f.url||'').trim();
-  if(!name || !url) return null;
-  return {name,display:name,body:name,url};
-}
-
-function getCustomFonts(){
-  let list=load(SK.CUSTOM_FONTS);
-  if(!Array.isArray(list)) list=[];
-  list=list.map(normalizeCustomFontEntry).filter(Boolean);
-
-  // Migrate legacy single custom font into the new list once.
-  const legacy=load(SK.CUSTOM_FONT);
-  const legacyNorm=normalizeCustomFontEntry(legacy);
-  if(legacyNorm && !list.some(x=>x.name.toLowerCase()===legacyNorm.name.toLowerCase())){
-    list=[...list, legacyNorm];
-    save(SK.CUSTOM_FONTS, list);
+function applyCustomFontFromStorage(){
+  const cf=load(SK.CUSTOM_FONT);
+  let cl=document.getElementById('customFontLinkEl');
+  if(cf){
+    if(!cl){cl=document.createElement('link');cl.rel='stylesheet';cl.id='customFontLinkEl';document.head.appendChild(cl);}
+    cl.href=cf.url;
+  } else if(cl){
+    cl.remove();
   }
-  return list;
-}
-
-function getAllFonts(){
-  return [...FONTS, ...getCustomFonts()];
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1591,8 +1588,7 @@ function syncSettings(){
 
   // Fonts
   const fs=document.getElementById('fontSelector');
-  const all=getAllFonts();
-  fs.innerHTML=all.map((f,i)=>`
+  fs.innerHTML=FONTS.map((f,i)=>`
     <div class="font-option${fontKey===String(i)?' on':''}" onclick="setFont(${i})">
       <div>
         <div class="font-name" style="font-family:'${f.display}',sans-serif;">${f.name}</div>
@@ -1631,8 +1627,7 @@ function setAccent(id){
 
 let currentFontIdx=0;
 function setFont(idx){
-  const all=getAllFonts();
-  const f=all[idx];
+  const f=FONTS[idx];
   if(!f)return;
   currentFontIdx=idx;
   document.documentElement.setAttribute('data-font',String(idx));
@@ -1647,18 +1642,13 @@ function applyCustomFont(){
   if(!raw)return;
   const urlName=raw.replace(/ /g,'+');
   const cssUrl=`https://fonts.googleapis.com/css2?family=${urlName}:wght@400;500;600;700;800&display=swap`;
-  const next=normalizeCustomFontEntry({name:raw,url:cssUrl});
-  if(!next) return;
-  const list=getCustomFonts();
-  const existingIdx=list.findIndex(f=>f.name.toLowerCase()===next.name.toLowerCase());
-  let finalIdx=existingIdx;
-  if(existingIdx===-1){
-    list.push(next);
-    save(SK.CUSTOM_FONTS, list);
-    finalIdx=list.length-1;
-  }
-  // Select the imported font as option 6+ (built-ins are 0..FONTS.length-1)
-  setFont(FONTS.length + finalIdx);
+  // Add a new link
+  let existing=document.getElementById('customFontLinkEl');
+  if(!existing){existing=document.createElement('link');existing.id='customFontLinkEl';existing.rel='stylesheet';document.head.appendChild(existing);}
+  existing.href=cssUrl;
+  document.documentElement.style.setProperty('--font-display',`'${raw}'`);
+  document.documentElement.style.setProperty('--font-body',`'${raw}'`);
+  save(SK.CUSTOM_FONT,{name:raw,url:cssUrl});
   document.getElementById('customFontInput').value='';
 }
 
