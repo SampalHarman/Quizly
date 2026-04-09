@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quizly — Study Smarter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="icon" type="image/webp" href="image.webp">
 <link id="fontLink" href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800;900&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ════════════════════════════════════════════
@@ -919,7 +918,8 @@ const SK = {
   ACRYLIC:'qly_acrylic',
   AMBIENT:'qly_ambient',
   FONT:'qly_font',
-  CUSTOM_FONT:'qly_cfont'
+  CUSTOM_FONT:'qly_cfont',      // legacy single custom font
+  CUSTOM_FONTS:'qly_cfonts'     // array of imported fonts (new)
 };
 
 const EMOJIS = ['📚','🔬','🧪','⚗️','🧬','💡','🧠','📐','📏','🔭','🌍','⚡','🎯','🏆','📊','🧩','🎓','📝','🔢','🌡️','🫀','🧲','🔋','💻','🌿','🦠','🛸','🎨','🌊','🔺'];
@@ -977,8 +977,10 @@ function applyLiveStorageUpdate(key){
     applyAppearanceFromStorage();
   } else if(key===SK.FONT){
     applyFontFromStorage();
-  } else if(key===SK.CUSTOM_FONT){
-    applyCustomFontFromStorage();
+  } else if(key===SK.CUSTOM_FONTS || key===SK.CUSTOM_FONT){
+    // Custom fonts changed (or legacy custom font changed) — refresh font selection + UI
+    applyFontFromStorage();
+    syncSettings();
   }
 
   if(document.getElementById('page-home').classList.contains('active')){
@@ -1019,23 +1021,41 @@ function applyAppearanceFromStorage(){
 
 function applyFontFromStorage(){
   const fontIdx=load(SK.FONT)||'0';
-  document.documentElement.setAttribute('data-font',fontIdx);
-  const fi=parseInt(fontIdx,10)||0;
-  const f=FONTS[fi]||FONTS[0];
+  const all=getAllFonts();
+  const fi=parseInt(fontIdx,10);
+  const idx=Number.isFinite(fi)?fi:0;
+  const f=all[idx]||all[0]||FONTS[0];
+  document.documentElement.setAttribute('data-font',String(idx));
   document.getElementById('fontLink').href=f.url;
   document.documentElement.style.setProperty('--font-display',`'${f.display}'`);
   document.documentElement.style.setProperty('--font-body',`'${f.body}'`);
 }
 
-function applyCustomFontFromStorage(){
-  const cf=load(SK.CUSTOM_FONT);
-  let cl=document.getElementById('customFontLinkEl');
-  if(cf){
-    if(!cl){cl=document.createElement('link');cl.rel='stylesheet';cl.id='customFontLinkEl';document.head.appendChild(cl);}
-    cl.href=cf.url;
-  } else if(cl){
-    cl.remove();
+function normalizeCustomFontEntry(f){
+  if(!f) return null;
+  const name=String(f.name||'').trim();
+  const url=String(f.url||'').trim();
+  if(!name || !url) return null;
+  return {name,display:name,body:name,url};
+}
+
+function getCustomFonts(){
+  let list=load(SK.CUSTOM_FONTS);
+  if(!Array.isArray(list)) list=[];
+  list=list.map(normalizeCustomFontEntry).filter(Boolean);
+
+  // Migrate legacy single custom font into the new list once.
+  const legacy=load(SK.CUSTOM_FONT);
+  const legacyNorm=normalizeCustomFontEntry(legacy);
+  if(legacyNorm && !list.some(x=>x.name.toLowerCase()===legacyNorm.name.toLowerCase())){
+    list=[...list, legacyNorm];
+    save(SK.CUSTOM_FONTS, list);
   }
+  return list;
+}
+
+function getAllFonts(){
+  return [...FONTS, ...getCustomFonts()];
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1570,7 +1590,8 @@ function syncSettings(){
 
   // Fonts
   const fs=document.getElementById('fontSelector');
-  fs.innerHTML=FONTS.map((f,i)=>`
+  const all=getAllFonts();
+  fs.innerHTML=all.map((f,i)=>`
     <div class="font-option${fontKey===String(i)?' on':''}" onclick="setFont(${i})">
       <div>
         <div class="font-name" style="font-family:'${f.display}',sans-serif;">${f.name}</div>
@@ -1609,7 +1630,8 @@ function setAccent(id){
 
 let currentFontIdx=0;
 function setFont(idx){
-  const f=FONTS[idx];
+  const all=getAllFonts();
+  const f=all[idx];
   if(!f)return;
   currentFontIdx=idx;
   document.documentElement.setAttribute('data-font',String(idx));
@@ -1624,13 +1646,18 @@ function applyCustomFont(){
   if(!raw)return;
   const urlName=raw.replace(/ /g,'+');
   const cssUrl=`https://fonts.googleapis.com/css2?family=${urlName}:wght@400;500;600;700;800&display=swap`;
-  // Add a new link
-  let existing=document.getElementById('customFontLinkEl');
-  if(!existing){existing=document.createElement('link');existing.id='customFontLinkEl';existing.rel='stylesheet';document.head.appendChild(existing);}
-  existing.href=cssUrl;
-  document.documentElement.style.setProperty('--font-display',`'${raw}'`);
-  document.documentElement.style.setProperty('--font-body',`'${raw}'`);
-  save(SK.CUSTOM_FONT,{name:raw,url:cssUrl});
+  const next=normalizeCustomFontEntry({name:raw,url:cssUrl});
+  if(!next) return;
+  const list=getCustomFonts();
+  const existingIdx=list.findIndex(f=>f.name.toLowerCase()===next.name.toLowerCase());
+  let finalIdx=existingIdx;
+  if(existingIdx===-1){
+    list.push(next);
+    save(SK.CUSTOM_FONTS, list);
+    finalIdx=list.length-1;
+  }
+  // Select the imported font as option 6+ (built-ins are 0..FONTS.length-1)
+  setFont(FONTS.length + finalIdx);
   document.getElementById('customFontInput').value='';
 }
 
