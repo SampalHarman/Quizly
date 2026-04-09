@@ -936,10 +936,18 @@ const ACCENTS = [
 ];
 
 const GUN_APP_NAMESPACE = 'quizly_sync_v1';
-const gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+// Multiple public relays — Heroku demos often go offline; mobile needs a reachable WSS peer.
+const GUN_PEERS = [
+  'https://try.axe.eco/gun',
+  'https://test.era.eco/gun',
+  'https://gun-manhattan.herokuapp.com/gun'
+];
+const gun = Gun({ peers: GUN_PEERS });
 const appData = gun.get(GUN_APP_NAMESPACE);
 const storeCache = {};
 let storageReady = false;
+/** How long to wait for the first sync from the network before booting (mobile can be slow). */
+const INITIAL_SYNC_MS = 15000;
 
 function cloneData(v){
   if(v===undefined || v===null) return v;
@@ -989,20 +997,18 @@ function applyLiveStorageUpdate(key){
 
 async function initStorage(){
   const keys = Object.values(SK);
-  await Promise.all(keys.map(k => new Promise(resolve=>{
-    appData.get(k).once(v=>{
-      if(v!==undefined) storeCache[k]=v;
-      resolve();
+  // `.once()` can resolve before the relay delivers remote data — use `.on()` + a sync window instead.
+  keys.forEach(k=>{
+    appData.get(k).on(data=>{
+      if(data===undefined || data===null) return;
+      storeCache[k]=cloneData(data);
+      if(storageReady) applyLiveStorageUpdate(k);
     });
-  })));
+  });
+
+  await new Promise(r=>setTimeout(r, INITIAL_SYNC_MS));
 
   storageReady = true;
-
-  appData.map().on((data,key)=>{
-    if(!storageReady || key==='_' || data===undefined) return;
-    storeCache[key]=data;
-    applyLiveStorageUpdate(key);
-  });
 }
 
 function applyAppearanceFromStorage(){
