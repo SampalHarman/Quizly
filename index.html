@@ -943,8 +943,17 @@ const GUN_PEERS = [
   'https://test.era.eco/gun',
   'https://gun-manhattan.herokuapp.com/gun'
 ];
-const gun = Gun({ peers: GUN_PEERS });
-const appData = gun.get(GUN_APP_NAMESPACE);
+// Gun is optional – if it fails to load we gracefully fall back to localStorage-only mode
+let gunInstance = null;
+let appData = null;
+if (typeof Gun !== 'undefined') {
+  try {
+    gunInstance = Gun({ peers: GUN_PEERS });
+    appData = gunInstance.get(GUN_APP_NAMESPACE);
+  } catch (e) {
+    console.warn('Gun initialisation failed, using localStorage only.', e);
+  }
+}
 const storeCache = {};
 let storageReady = false;
 /** How long to wait for the first sync from the network before booting (mobile can be slow). */
