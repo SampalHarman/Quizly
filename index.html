@@ -1094,7 +1094,7 @@ function parseQuestions(raw, sections, defaultSecId = null) {
       const optLine = lines[lines.length-1];
       if (optLine.includes('|')) {
         const p = optLine.split('|').map(s => s.trim());
-        if (p.length >= 5) {question=lines.slice(0,-1).join(' ');opts=[p[0],p[1],p[2],p[3]];correct='ABCD'.indexOf(p[4].toUpperCase());}
+        if (p.length >= 5) {question=lines.slice(0,-1).join('\n');opts=[p[0],p[1],p[2],p[3]];correct='ABCD'.indexOf(p[4].toUpperCase());}
       }
     }
     if (correct >= 0 && question) qs.push({text:question,opts,correct,sectionId:curSecId});
@@ -1383,7 +1383,18 @@ function showBanner(ok, correctText, label) {
   const path = ok ? '<polyline points="20 6 9 17 4 12"/>' : '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
   document.getElementById('bannerIcon').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5" stroke-linecap="round">${path}</svg>`;
   document.getElementById('bannerTitle').textContent = ok ? 'Correct!' : 'Incorrect';
-  document.getElementById('bannerSub').textContent = ok ? 'Great work — keep going!' : `Answer: ${label}. ${correctText}`;
+  const sub = document.getElementById('bannerSub');
+  if (ok) {
+    sub.textContent = 'Great work — keep going!';
+  } else {
+    sub.innerHTML = '';
+    const prefix = document.createElement('span');
+    prefix.textContent = `Answer: ${label}. `;
+    sub.appendChild(prefix);
+    const answer = document.createElement('span');
+    setMd(answer, correctText);
+    sub.appendChild(answer);
+  }
 }
 function hideBanner() { document.getElementById('qBanner').className = 'q-banner'; }
 
@@ -1467,10 +1478,10 @@ function showResults(qid) {
       const chosen = ans ? ans.chosen : -1;
       const isOk = ans ? ans.correct : false;
       return `<div class="review-item">
-        <div class="ri-q">${esc(qq.text)}</div>
+        <div class="ri-q md" data-md="${encodeURIComponent(String(qq.text||''))}"></div>
         <div class="ri-pills">
-          <span class="ri-pill ${isOk?'ok':'ng'}">${isOk?'✓':'✗'} Your answer: ${chosen>=0?LABELS[chosen]+'. '+esc(qq.opts[chosen]):'Not answered'}</span>
-          ${!isOk?`<span class="ri-pill ra">✓ ${LABELS[qq.correct]}. ${esc(qq.opts[qq.correct])}</span>`:''}
+          <span class="ri-pill ${isOk?'ok':'ng'}">${isOk?'✓':'✗'} Your answer: ${chosen>=0?`${LABELS[chosen]}. <span class="md" data-md="${encodeURIComponent(String(qq.opts[chosen]||''))}"></span>`:'Not answered'}</span>
+          ${!isOk?`<span class="ri-pill ra">✓ ${LABELS[qq.correct]}. <span class="md" data-md="${encodeURIComponent(String(qq.opts[qq.correct]||''))}"></span></span>`:''}
         </div>
       </div>`;
     }).join('');
@@ -1483,6 +1494,9 @@ function showResults(qid) {
       <div class="bd-bar"><div class="bd-bar-fill" style="width:0%" data-t="${secPct}%"></div></div>
       ${reviewHtml}
     `;
+    bd.querySelectorAll('.md[data-md]').forEach(el => {
+      try { setMd(el, decodeURIComponent(el.dataset.md || '')); } catch(e) { setMd(el, el.dataset.md || ''); }
+    });
     body.appendChild(bd);
     requestAnimationFrame(() => setTimeout(() => {
       bd.querySelectorAll('.bd-bar-fill').forEach(el => el.style.width = el.dataset.t);
@@ -1814,9 +1828,47 @@ function showPage(name) {
   document.getElementById('page-'+name).classList.add('active');
   window.scrollTo(0,0);
 }
+function preserveMathBlocks(src) {
+  const placeholders = [];
+  let out = String(src || '');
+  out = out.replace(/\$\$[\s\S]+?\$\$|\$[^$\n]+\$/g, m => {
+    const token = `@@MATH_${placeholders.length}@@`;
+    placeholders.push(m);
+    return token;
+  });
+  return { out, placeholders };
+}
+function restoreMathBlocks(src, placeholders) {
+  let out = String(src || '');
+  placeholders.forEach((m, i) => {
+    out = out.replaceAll(`@@MATH_${i}@@`, m);
+  });
+  return out;
+}
+function addScriptSupport(src) {
+  // Lightweight support for common non-Markdown script notations:
+  // x^2 -> x<sup>2</sup>, H_2 -> H<sub>2</sub>
+  return String(src || '')
+    .replace(/([A-Za-z0-9)\]])\^([A-Za-z0-9+\-()]+)/g, '$1<sup>$2</sup>')
+    .replace(/([A-Za-z0-9)\]])_([A-Za-z0-9+\-()]+)/g, '$1<sub>$2</sub>');
+}
 function setMd(el, raw) {
   if (!el) return;
-  el.innerHTML = (window.marked?.parseInline ? window.marked.parseInline(String(raw||'')) : esc(raw||''));
+  const src = String(raw || '');
+  const { out: withoutMath, placeholders } = preserveMathBlocks(src);
+  const enhanced = restoreMathBlocks(addScriptSupport(withoutMath), placeholders);
+  const inlineTags = new Set(['SPAN', 'A', 'STRONG', 'EM', 'B', 'I', 'SMALL', 'LABEL']);
+  const useInline = inlineTags.has(el.tagName);
+  if (window.marked?.parse) {
+    // Full markdown support for questions/answers, with sane line-break behavior.
+    el.innerHTML = useInline
+      ? window.marked.parseInline(enhanced, { gfm: true, breaks: true })
+      : window.marked.parse(enhanced, { gfm: true, breaks: true });
+  } else if (window.marked?.parseInline) {
+    el.innerHTML = window.marked.parseInline(enhanced);
+  } else {
+    el.innerHTML = esc(enhanced);
+  }
   if (typeof window.renderMathInElement === 'function') {
     window.renderMathInElement(el, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});
   }
