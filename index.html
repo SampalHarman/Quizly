@@ -820,10 +820,6 @@ body::-webkit-scrollbar,
         <button class="tog" id="togShuffle" onclick="toggleShuffle()"></button>
       </div>
     </div>
-    <div class="field">
-      <label>Card Color</label>
-      <div class="color-row" id="cardColorRow"></div>
-    </div>
     <div class="sm-actions">
       <button class="btn-ghost" onclick="openEditFromStart()">
         <svg style="width:13px;height:13px;stroke-width:2;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -848,6 +844,10 @@ body::-webkit-scrollbar,
     </div>
     <div class="field"><label>Quiz Name</label><input id="qzName" placeholder="e.g. Physics: Motion in a Circle" maxlength="80"></div>
     <div class="field"><label>Icon</label><div class="emoji-row" id="emojiRow"></div></div>
+    <div class="field">
+      <label>Card Color</label>
+      <div class="color-row" id="cardColorRow"></div>
+    </div>
     <div class="field">
       <label>Sections <span style="text-transform:none;letter-spacing:0;font-size:10.5px;font-weight:400;color:var(--muted)">(optional)</span></label>
       <div class="sections-list" id="sectionsList"></div>
@@ -1182,7 +1182,6 @@ function openStartModal(id) {
   // Restore prefs from quiz object
   const prefs = q.prefs || {};
   startShuffle = prefs.shuffle || false;
-  selectedCardColor = q.color || CARD_COLORS[0].id;
 
   // Populate UI
   document.getElementById('smIcon').textContent = q.emoji || '📚';
@@ -1200,12 +1199,6 @@ function openStartModal(id) {
 
   document.getElementById('togShuffle').classList.toggle('on', startShuffle);
 
-  // Card colors
-  const ccRow = document.getElementById('cardColorRow');
-  ccRow.innerHTML = CARD_COLORS.map(c =>
-    `<div class="color-chip${c.id===selectedCardColor?' sel':''}" data-color="${c.id}" title="${esc(c.name)}" style="background:${c.id}" onclick="selectCardColor('${c.id}')"></div>`
-  ).join('');
-
   document.getElementById('startOverlay').classList.add('open');
 }
 function closeStartModal() { document.getElementById('startOverlay').classList.remove('open'); }
@@ -1216,6 +1209,13 @@ function selectCardColor(c) {
   document.querySelectorAll('#cardColorRow .color-chip').forEach(el => {
     el.classList.toggle('sel', (el.dataset.color || '').toLowerCase() === c.toLowerCase());
   });
+}
+function renderCardColorRow() {
+  const ccRow = document.getElementById('cardColorRow');
+  if (!ccRow) return;
+  ccRow.innerHTML = CARD_COLORS.map(c =>
+    `<div class="color-chip${c.id===selectedCardColor?' sel':''}" data-color="${c.id}" title="${esc(c.name)}" style="background:${c.id}" onclick="selectCardColor('${c.id}')"></div>`
+  ).join('');
 }
 
 function toggleShuffle() {
@@ -1231,11 +1231,10 @@ function openEditFromStart() {
 function beginQuiz() {
   const q = quizzes.find(x => x.id === startQuizId); if (!q) return;
 
-  // Save prefs + color to quiz
+  // Save prefs to quiz
   const idx = quizzes.findIndex(x => x.id === startQuizId);
   if (idx >= 0) {
     quizzes[idx].prefs = {shuffle:startShuffle};
-    quizzes[idx].color = selectedCardColor;
     save(SK.Q, quizzes);
   }
 
@@ -1504,10 +1503,11 @@ function freshStart(id) { delete progress[id]; save(SK.P, progress); openStartMo
 /* ══ QUIZ BUILDER ══ */
 function openNewQuiz() {
   editingId = null; modalSecs = []; selEmoji = '📚'; qsTexts = {};
+  selectedCardColor = CARD_COLORS[0].id;
   document.getElementById('qzName').value = '';
   document.getElementById('modalTitle').textContent = 'New Quiz';
   document.getElementById('saveQuizBtn').textContent = 'Create Quiz';
-  buildEmojiRow(); renderSecs(); renderQsArea();
+  buildEmojiRow(); renderCardColorRow(); renderSecs(); renderQsArea();
   document.getElementById('quizOverlay').classList.add('open');
 }
 
@@ -1516,6 +1516,7 @@ function openEditQuiz(id) {
   editingId = id;
   modalSecs = q.sections.map(s => ({...s}));
   selEmoji = q.emoji || '📚';
+  selectedCardColor = q.color || CARD_COLORS[0].id;
   document.getElementById('qzName').value = q.name;
   document.getElementById('modalTitle').textContent = 'Edit Quiz';
   document.getElementById('saveQuizBtn').textContent = 'Save Changes';
@@ -1528,7 +1529,7 @@ function openEditQuiz(id) {
       qsTexts[s.id] = sqs.map(qq => `${qq.text}\n${qq.opts.join(' | ')} | ${'ABCD'[qq.correct]}`).join('\n\n');
     });
   }
-  buildEmojiRow(); renderSecs(); renderQsArea();
+  buildEmojiRow(); renderCardColorRow(); renderSecs(); renderQsArea();
   document.getElementById('quizOverlay').classList.add('open');
 }
 
@@ -1590,11 +1591,11 @@ function saveQuiz() {
   if (editingId) {
     const idx = quizzes.findIndex(q => q.id === editingId);
     if (idx >= 0) {
-      quizzes[idx] = {...quizzes[idx], name, emoji:selEmoji, sections:secs, questions:allQs};
+      quizzes[idx] = {...quizzes[idx], name, emoji:selEmoji, sections:secs, questions:allQs, color:selectedCardColor};
       delete progress[editingId];
     }
   } else {
-    quizzes.push({id:'qz'+Date.now(), name, emoji:selEmoji, sections:secs, questions:allQs, color:CARD_COLORS[0].id, createdAt:Date.now()});
+    quizzes.push({id:'qz'+Date.now(), name, emoji:selEmoji, sections:secs, questions:allQs, color:selectedCardColor, createdAt:Date.now()});
   }
   save(SK.Q, quizzes);
   save(SK.P, progress);
