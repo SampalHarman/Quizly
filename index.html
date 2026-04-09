@@ -919,7 +919,8 @@ const SK = {
   ACRYLIC:'qly_acrylic',
   AMBIENT:'qly_ambient',
   FONT:'qly_font',
-  CUSTOM_FONT:'qly_cfont'
+  CUSTOM_FONT:'qly_cfont',      // legacy single custom font
+  CUSTOM_FONTS:'qly_cfonts'     // array of custom fonts (new)
 };
 
 const EMOJIS = ['📚','🔬','🧪','⚗️','🧬','💡','🧠','📐','📏','🔭','🌍','⚡','🎯','🏆','📊','🧩','🎓','📝','🔢','🌡️','🫀','🧲','🔋','💻','🌿','🦠','🛸','🎨','🌊','🔺'];
@@ -996,8 +997,10 @@ function applyLiveStorageUpdate(key){
     applyAppearanceFromStorage();
   } else if(key===SK.FONT){
     applyFontFromStorage();
-  } else if(key===SK.CUSTOM_FONT){
-    applyCustomFontFromStorage();
+  } else if(key===SK.CUSTOM_FONTS || key===SK.CUSTOM_FONT){
+    // Custom fonts list changed (or legacy custom font changed) — refresh font selection + UI
+    applyFontFromStorage();
+    syncSettings();
   }
 
   if(document.getElementById('page-home').classList.contains('active')){
@@ -1037,23 +1040,31 @@ function applyAppearanceFromStorage(){
 
 function applyFontFromStorage(){
   const fontIdx=load(SK.FONT)||'0';
-  document.documentElement.setAttribute('data-font',fontIdx);
-  const fi=parseInt(fontIdx,10)||0;
-  const f=FONTS[fi]||FONTS[0];
+  const all=getAllFonts();
+  const fi=parseInt(fontIdx,10);
+  const idx=Number.isFinite(fi) ? fi : 0;
+  const f=all[idx]||all[0]||FONTS[0];
+  document.documentElement.setAttribute('data-font',String(all.indexOf(f)));
   document.getElementById('fontLink').href=f.url;
   document.documentElement.style.setProperty('--font-display',`'${f.display}'`);
   document.documentElement.style.setProperty('--font-body',`'${f.body}'`);
 }
 
-function applyCustomFontFromStorage(){
-  const cf=load(SK.CUSTOM_FONT);
-  let cl=document.getElementById('customFontLinkEl');
-  if(cf){
-    if(!cl){cl=document.createElement('link');cl.rel='stylesheet';cl.id='customFontLinkEl';document.head.appendChild(cl);}
-    cl.href=cf.url;
-  } else if(cl){
-    cl.remove();
+function getCustomFonts(){
+  let list=load(SK.CUSTOM_FONTS);
+  if(!Array.isArray(list)) list=[];
+
+  // Migrate legacy single font into the new list once.
+  const legacy=load(SK.CUSTOM_FONT);
+  if(list.length===0 && legacy && legacy.name && legacy.url){
+    list=[{name:legacy.name,display:legacy.name,body:legacy.name,url:legacy.url}];
+    save(SK.CUSTOM_FONTS,list);
   }
+  return list.filter(f=>f&&f.name&&f.url);
+}
+
+function getAllFonts(){
+  return [...FONTS, ...getCustomFonts()];
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1588,7 +1599,8 @@ function syncSettings(){
 
   // Fonts
   const fs=document.getElementById('fontSelector');
-  fs.innerHTML=FONTS.map((f,i)=>`
+  const all=getAllFonts();
+  fs.innerHTML=all.map((f,i)=>`
     <div class="font-option${fontKey===String(i)?' on':''}" onclick="setFont(${i})">
       <div>
         <div class="font-name" style="font-family:'${f.display}',sans-serif;">${f.name}</div>
@@ -1627,7 +1639,8 @@ function setAccent(id){
 
 let currentFontIdx=0;
 function setFont(idx){
-  const f=FONTS[idx];
+  const all=getAllFonts();
+  const f=all[idx];
   if(!f)return;
   currentFontIdx=idx;
   document.documentElement.setAttribute('data-font',String(idx));
@@ -1642,13 +1655,20 @@ function applyCustomFont(){
   if(!raw)return;
   const urlName=raw.replace(/ /g,'+');
   const cssUrl=`https://fonts.googleapis.com/css2?family=${urlName}:wght@400;500;600;700;800&display=swap`;
-  // Add a new link
-  let existing=document.getElementById('customFontLinkEl');
-  if(!existing){existing=document.createElement('link');existing.id='customFontLinkEl';existing.rel='stylesheet';document.head.appendChild(existing);}
-  existing.href=cssUrl;
-  document.documentElement.style.setProperty('--font-display',`'${raw}'`);
-  document.documentElement.style.setProperty('--font-body',`'${raw}'`);
-  save(SK.CUSTOM_FONT,{name:raw,url:cssUrl});
+  const nextFont={name:raw,display:raw,body:raw,url:cssUrl};
+  const list=getCustomFonts();
+  const existsIdx=list.findIndex(f=>String(f.name).toLowerCase()===raw.toLowerCase());
+  if(existsIdx===-1){
+    list.push(nextFont);
+    save(SK.CUSTOM_FONTS,list);
+    // best-effort cleanup of legacy key
+    save(SK.CUSTOM_FONT,null);
+    // Select the newly imported font (it becomes option 6+)
+    setFont(FONTS.length + (list.length-1));
+  } else {
+    // Already imported — just select it.
+    setFont(FONTS.length + existsIdx);
+  }
   document.getElementById('customFontInput').value='';
 }
 
