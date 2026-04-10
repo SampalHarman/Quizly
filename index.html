@@ -1117,7 +1117,7 @@ function renderHome() {
   if (!inProg.length) {
     ipG.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:2px 0;">No quizzes in progress.</div>';
   } else {
-    inProg.forEach(q => ipG.appendChild(buildCard(q)));
+    [...inProg].sort((a,b) => a.name.localeCompare(b.name)).forEach(q => ipG.appendChild(buildCard(q)));
   }
 
   const allG = document.getElementById('allGrid');
@@ -1125,7 +1125,7 @@ function renderHome() {
   if (!quizzes.length) {
     allG.innerHTML = `<div class="empty-state"><div class="em">📭</div><p>No quizzes yet.<br>Tap <strong>New Quiz</strong> below.</p></div>`;
   } else {
-    quizzes.forEach(q => allG.appendChild(buildCard(q)));
+    [...quizzes].sort((a,b) => a.name.localeCompare(b.name)).forEach(q => allG.appendChild(buildCard(q)));
   }
 }
 
